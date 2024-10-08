@@ -22,6 +22,7 @@
     initThree() {
       // シーンを作成
       const scene = new THREE.Scene();
+      let cylinderList = [];
       scene.add(new THREE.GridHelper(1000,1000));
 
       // カメラを設定
@@ -43,7 +44,6 @@
         cube1.position.x = 0;
         cube1.position.z = 0;
         const geometry2 = new THREE.CylinderGeometry(0.3,0.3,6);
-        const cylinders = [];
         const interval = 2;
         const offset_x = -3;
         const offset_z = -3;
@@ -54,7 +54,7 @@
             cylinder.position.x = offset_x +interval * (Math.floor(i / 4));
             cylinder.position.y = offset_y;
             cylinder.position.z = offset_z +interval * (i % 4);
-            cylinders.push(cylinder);
+            cylinderList.push(cylinder);
             scene.add(cylinder);
         }
     }
@@ -150,13 +150,23 @@
             camera.position.z = radius * Math.cos(theta) * Math.sin(phi);
             camera.position.y = radius * Math.sin(theta);
             camera.lookAt(new THREE.Vector3(0, 0, 0));
-            console.log(theta);
-            console.log(camera.position);
         }
         setInterval(move, 1000 / 60);
     }
     CameraMove();
+
+    const setBall = (i) => {
+        const ballradius = 0.7;
+        const geometry = new THREE.SphereGeometry(ballradius, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.position.x = cylinderList[i].position.x;
+        sphere.position.y = cylinderList[i].position.y-0.3;
+        sphere.position.z = cylinderList[i].position.z;
+        scene.add(sphere);
+    }
     const ClickDetect = () => {
+        let selectedcylinder = null;
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         const onClick = function(event) {
@@ -172,12 +182,23 @@
                 if(intersects[0].object.material.color.getHex() === 0xFFFFFF) {
                     return;
                 }
-                if(intersects[0].object.material.color.getHex() === 0x00FF00) {
+                if(intersects[0].object.material.color.getHex() === 0xFF0000) {
+                    for(let i = 0; i < 16; i++) {
+                        if(cylinderList[i] === selectedcylinder) {
+                            /* ここで通し番号を取得 */
+                            setBall(i);
+                        }
+                    }
                     intersects[0].object.material.color.set(0xDEB887);
+                    selectedcylinder = null;
                     return;
                 }
                 if(intersects[0].object.material.color.getHex() === 0xDEB887) {
-                    intersects[0].object.material.color.set(0x00FF00);
+                    if(selectedcylinder !== null) {
+                        selectedcylinder.material.color.set(0xDEB887);
+                    }
+                    intersects[0].object.material.color.set(0xFF0000);
+                    selectedcylinder = intersects[0].object;
                     return;
                 }
             }
