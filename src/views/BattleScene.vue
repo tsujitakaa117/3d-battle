@@ -43,14 +43,14 @@
         cube1.position.x = 0;
         cube1.position.z = 0;
         const geometry2 = new THREE.CylinderGeometry(0.3,0.3,6);
-        const material2 = new THREE.MeshBasicMaterial({ color: 0xDEB887 });
         const cylinders = [];
         const interval = 2;
         const offset_x = -3;
         const offset_z = -3;
         const offset_y = 3;
         for(let i = 0; i < 16; i++) {
-            const cylinder = new THREE.Mesh(geometry2, material2);
+            let material = new THREE.MeshBasicMaterial({ color: 0xDEB887 });
+            let cylinder = new THREE.Mesh(geometry2, material);
             cylinder.position.x = offset_x +interval * (Math.floor(i / 4));
             cylinder.position.y = offset_y;
             cylinder.position.z = offset_z +interval * (i % 4);
@@ -68,7 +68,7 @@
 
         renderer.render(scene, camera);
     };
-    const detectMousePoint = function () {
+    const CameraMove = function () {
         let whichway = 0;
         document.getElementById('up').addEventListener('mousedown', function() {
             whichway = 1;
@@ -118,12 +118,6 @@
         document.getElementById('right').addEventListener('touchend', function() {
             whichway = 0;
         });
-        // dで今のカメラ位置をconsole.log
-        document.addEventListener('keydown', function(e) {
-            if(e.key === 'd') {
-                console.log(camera.position);
-            }
-        });
         const speed = 0.03;
         const radius = 20;
         let theta = Math.PI / 3;
@@ -161,7 +155,37 @@
         }
         setInterval(move, 1000 / 60);
     }
-    detectMousePoint();
+    CameraMove();
+    const ClickDetect = () => {
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const onClick = function(event) {
+            const x = event.clientX;
+            const y = event.clientY;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            mouse.x = (x / w) * 2 - 1;
+            mouse.y = -(y / h) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+            if(intersects.length > 0) {
+                if(intersects[0].object.material.color.getHex() === 0xFFFFFF) {
+                    return;
+                }
+                if(intersects[0].object.material.color.getHex() === 0x00FF00) {
+                    intersects[0].object.material.color.set(0xDEB887);
+                    return;
+                }
+                if(intersects[0].object.material.color.getHex() === 0xDEB887) {
+                    intersects[0].object.material.color.set(0x00FF00);
+                    return;
+                }
+            }
+        }
+        document.addEventListener('click', onClick);
+        document.addEventListener('touchstart', onClick);
+    } 
+    ClickDetect();
       animate();
     },
   },
