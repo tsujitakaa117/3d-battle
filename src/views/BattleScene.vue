@@ -1,7 +1,11 @@
 <template>
     <v-app>
         <div class="three-container">
-          <canvas id="three-canvas"></canvas>
+            <canvas id="three-canvas"></canvas>
+            <button id="up">↑</button>
+            <button id="down">↓</button>
+            <button id="left">←</button>
+            <button id="right">→</button>
         </div>
     </v-app>
   </template>
@@ -22,8 +26,9 @@
 
       // カメラを設定
       const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.z = 10;
+      camera.position.z = 10.8;
       camera.position.y = 10;
+      camera.position.x = 3.2;
 
       // レンダラーを設定
       const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas') });
@@ -35,17 +40,20 @@
         const material1 = new THREE.MeshBasicMaterial({ color: 0xFFFFFFF });
         const cube1 = new THREE.Mesh(geometry1, material1);
         scene.add(cube1);
-        cube1.position.x = 3.5;
-        cube1.position.z = 3;
+        cube1.position.x = 0;
+        cube1.position.z = 0;
         const geometry2 = new THREE.CylinderGeometry(0.3,0.3,6);
         const material2 = new THREE.MeshBasicMaterial({ color: 0xDEB887 });
         const cylinders = [];
         const interval = 2;
+        const offset_x = -3;
+        const offset_z = -3;
+        const offset_y = 3;
         for(let i = 0; i < 16; i++) {
             const cylinder = new THREE.Mesh(geometry2, material2);
-            cylinder.position.x = interval * (Math.floor(i / 4));
-            cylinder.position.y = 3;
-            cylinder.position.z = interval * (i % 4);
+            cylinder.position.x = offset_x +interval * (Math.floor(i / 4));
+            cylinder.position.y = offset_y;
+            cylinder.position.z = offset_z +interval * (i % 4);
             cylinders.push(cylinder);
             scene.add(cylinder);
         }
@@ -61,34 +69,97 @@
         renderer.render(scene, camera);
     };
     const detectMousePoint = function () {
-        let isClicking = false;
-        const mouse = new THREE.Vector2();
-    
-        document.addEventListener('mousemove', (event) => {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            if(isClicking) {
-                camera.position.x += mouse.x;
-                camera.position.y += mouse.y;
+        let whichway = 0;
+        document.getElementById('up').addEventListener('mousedown', function() {
+            whichway = 1;
+        });
+        document.getElementById('down').addEventListener('mousedown', function() {
+            whichway = 2;
+        });
+        document.getElementById('left').addEventListener('mousedown', function() {
+            whichway = 3;
+        });
+        document.getElementById('right').addEventListener('mousedown', function() {
+            whichway = 4;
+        });
+        document.getElementById('up').addEventListener('mouseup', function() {
+            whichway = 0;
+        });
+        document.getElementById('down').addEventListener('mouseup', function() {
+            whichway = 0;
+        });
+        document.getElementById('left').addEventListener('mouseup', function() {
+            whichway = 0;
+        });
+        document.getElementById('right').addEventListener('mouseup', function() {
+            whichway = 0;
+        });
+        document.getElementById('up').addEventListener('touchstart', function() {
+            whichway = 1;
+        });
+        document.getElementById('down').addEventListener('touchstart', function() {
+            whichway = 2;
+        });
+        document.getElementById('left').addEventListener('touchstart', function() {
+            whichway = 3;
+        });
+        document.getElementById('right').addEventListener('touchstart', function() {
+            whichway = 4;
+        });
+        document.getElementById('up').addEventListener('touchend', function() {
+            whichway = 0;
+        });
+        document.getElementById('down').addEventListener('touchend', function() {
+            whichway = 0;
+        });
+        document.getElementById('left').addEventListener('touchend', function() {
+            whichway = 0;
+        });
+        document.getElementById('right').addEventListener('touchend', function() {
+            whichway = 0;
+        });
+        // dで今のカメラ位置をconsole.log
+        document.addEventListener('keydown', function(e) {
+            if(e.key === 'd') {
+                console.log(camera.position);
             }
-            camera.rotation.x = mouse.y;
-            camera.rotation.y = mouse.x;
         });
-        document.addEventListener('mousedown', () => {
-            isClicking = true;
-        });
-        document.addEventListener('mouseup', () => {
-            isClicking = false;
-        });
-        //Rで初期位置のリセット
-        document.addEventListener('keydown', (event) => {
-            if(event.key === 'r') {
-                camera.position.x = 0;
-                camera.position.y = 10;
-                camera.position.z = 10;
+        const speed = 0.03;
+        const radius = 20;
+        let theta = Math.PI / 3;
+        let phi = Math.PI / 3;
+        const move = function() {
+            /* cube1を中心に3次元極座標的に移動させる */
+            /* 北極点、南極点に行ったら止まるようにする */
 
+            switch(whichway) {
+                case 1:
+                    if(theta >= 4*Math.PI/10) {
+                        break;
+                    }
+                    theta += speed;
+                    break;
+                case 2:
+                    if(theta <= -4*Math.PI/10) {
+                        break;
+                    }
+                    theta -= speed;
+                    break;
+                case 3:
+                    phi += speed;
+                    break;
+                case 4:
+                    phi -= speed;
+                    break; 
             }
-        });
+            camera.position.x = radius * Math.cos(theta) * Math.cos(phi);
+            camera.position.z = radius * Math.cos(theta) * Math.sin(phi);
+            camera.position.y = radius * Math.sin(theta);
+            camera.lookAt(new THREE.Vector3(0, 0, 0));
+            console.log(theta);
+            console.log(camera.position);
+        }
+        setInterval(move, 1000 / 60);
     }
     detectMousePoint();
       animate();
@@ -112,6 +183,72 @@
     display: block;
     width: 100%;
     height: 100%;
+  }
+/* ボタンそれぞれにcssを割り当て */
+   #up {
+    position: fixed;
+    /* 親要素の中央に配置 */
+    top: 80%;
+    left: 30%;
+
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    font-size: 40px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  #down {
+    position: fixed;
+    /* 親要素の中央に配置 */
+    top: 90%;
+    left: 30%;
+
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    font-size: 40px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  #right {
+    position: fixed;
+    /* 親要素の中央に配置 */
+    top: 85%;
+    left: 35%;
+
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    font-size: 40px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  #left {
+    position: fixed;
+    /* 親要素の中央に配置 */
+    top: 85%;
+    left: 25%;
+
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    font-size: 40px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
   }
   </style>
   
