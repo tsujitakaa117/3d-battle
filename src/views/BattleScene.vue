@@ -1,10 +1,8 @@
 <template>
     <v-app>
-      <v-container fluid>
         <div class="three-container">
           <canvas id="three-canvas"></canvas>
         </div>
-      </v-container>
     </v-app>
   </template>
   
@@ -12,7 +10,7 @@
   import * as THREE from 'three';
   
   export default {
-    name: 'App',
+    name: 'BattleScene',
     mounted() {
     this.initThree();
   },
@@ -86,8 +84,8 @@
         document.addEventListener('keydown', (event) => {
             if(event.key === 'r') {
                 camera.position.x = 0;
-                camera.position.y = 5;
-                camera.position.z = 5;
+                camera.position.y = 10;
+                camera.position.z = 10;
 
             }
         });
@@ -105,7 +103,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
   }
   
