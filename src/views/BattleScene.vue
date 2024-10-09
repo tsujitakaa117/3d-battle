@@ -20,8 +20,22 @@
   },
   methods: {
     initThree() {
-      // シーンを作成
+      // シーンを作成(グローバル変数)
       const scene = new THREE.Scene();
+
+      const gameSituation = {
+                    "ballSituation": ["","","","","","","","","","","","","","","","","",""],   /* 16個のcylinderにそれぞれボールが何個あるか */
+                    "winner": null,
+                    "turn": 0,
+                    "player": "A",
+                }
+
+
+
+
+
+
+
       let cylinderList = [];
       scene.add(new THREE.GridHelper(1000,1000));
 
@@ -35,6 +49,29 @@
       const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas') });
       renderer.setSize(window.innerWidth, window.innerHeight);
 
+    const Json2Ballset = (json) => { /* json形式のデータをボールの配置に変換 */
+        /* 一旦全部のボールを消す */
+        for(let i = 0; i < 16; i++) {
+            for(let j = 0; j < json.ballSituation[i].length; j++) {
+                setoneBall(i,j,"");
+            }
+        }
+
+        /* jsonのデータをもとにボールを配置 */
+        for(let i = 0; i < 16; i++) {
+            if(json.ballSituation[i] === "") {
+                continue;
+            }
+            for(let j = 0; j < json.ballSituation[i].length; j++) {
+                setoneBall(i,j,json.ballSituation[i][j]);
+            }
+        }
+    }
+
+
+
+
+
       // シンプルなボックスを作成
     const generateGeometry = ()=> {
         const geometry1 = new THREE.BoxGeometry(10,3,10);
@@ -43,7 +80,7 @@
         scene.add(cube1);
         cube1.position.x = 0;
         cube1.position.z = 0;
-        const geometry2 = new THREE.CylinderGeometry(0.3,0.3,6);
+        const geometry2 = new THREE.CylinderGeometry(0.5,0.3,6);
         const interval = 2;
         const offset_x = -3;
         const offset_z = -3;
@@ -60,6 +97,11 @@
     }
     generateGeometry();
 
+
+
+
+
+
       // アニメーションループ
     const animate = function () {
         requestAnimationFrame(animate);
@@ -68,6 +110,11 @@
 
         renderer.render(scene, camera);
     };
+
+
+
+
+
     const CameraMove = function () {
         let whichway = 0;
         document.getElementById('up').addEventListener('mousedown', function() {
@@ -119,7 +166,7 @@
             whichway = 0;
         });
         const speed = 0.03;
-        const radius = 20;
+        const radius = 15;
         let theta = Math.PI / 3;
         let phi = Math.PI / 3;
         const move = function() {
@@ -155,16 +202,33 @@
     }
     CameraMove();
 
-    const setBall = (i) => {
+    const setoneBall = (i,height,color) => { /* i番目のcylinderのheight番目の位置にcolorのボールを置く */
         const ballradius = 0.7;
         const geometry = new THREE.SphereGeometry(ballradius, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.x = cylinderList[i].position.x;
-        sphere.position.y = cylinderList[i].position.y-0.3;
-        sphere.position.z = cylinderList[i].position.z;
-        scene.add(sphere);
+        if(color === "W"){
+            const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.x = cylinderList[i].position.x;
+            sphere.position.y = cylinderList[i].position.y-0.3 + height;
+            sphere.position.z = cylinderList[i].position.z;
+            scene.add(sphere);
+            return;
+        }
+        if(color === "B"){
+            const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.x = cylinderList[i].position.x;
+            sphere.position.y = cylinderList[i].position.y-0.3 + height;
+            sphere.position.z = cylinderList[i].position.z;
+            scene.add(sphere);
+            return;
+        }
+        else{
+            return null;
+        }
     }
+
+
     const ClickDetect = () => {
         let selectedcylinder = null;
         const raycaster = new THREE.Raycaster();
@@ -172,8 +236,8 @@
         const onClick = function(event) {
             const x = event.clientX;
             const y = event.clientY;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
+            const w = renderer.domElement.width;
+            const h = renderer.domElement.height;
             mouse.x = (x / w) * 2 - 1;
             mouse.y = -(y / h) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
@@ -186,7 +250,11 @@
                     for(let i = 0; i < 16; i++) {
                         if(cylinderList[i] === selectedcylinder) {
                             /* ここで通し番号を取得 */
-                            setBall(i);
+                            if(gameSituation.ballSituation[i].length === 4){ /* 既に4個ボールがある場合 */
+                                return;
+                            }
+                            gameSituation.ballSituation[i] += "W";
+                            Json2Ballset(gameSituation);
                         }
                     }
                     intersects[0].object.material.color.set(0xDEB887);
@@ -205,6 +273,11 @@
         }
         document.addEventListener('click', onClick);
         document.addEventListener('touchstart', onClick);
+        document.addEventListener('keydown', function(event) {
+            if(event.key === 'Enter') {
+                Json2Ballset(gameSituation);
+            }
+        });
     } 
     ClickDetect();
       animate();
