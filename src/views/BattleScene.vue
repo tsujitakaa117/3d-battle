@@ -15,25 +15,40 @@
   
   export default {
     name: 'BattleScene',
+    data() {
+        return {
+            ws: null,
+            game: null,
+        };
+    },
     mounted() {
-    this.initThree();
+        this.createWebSocket();
+        this.initThree();
   },
   methods: {
+    createWebSocket() {
+        this.ws = new WebSocket('ws://localhost:8000/ws');
+        this.ws.onopen = () => {
+            console.log('WebSocket connected');
+        };
+        this.ws.onclose = () => {
+            console.log('WebSocket closed');
+        };
+        this.ws.onmessage = (event) => {
+            this.game = JSON.parse(event.data);
+            console.log(this.game);
+        };
+    },
     initThree() {
       // シーンを作成(グローバル変数)
       const scene = new THREE.Scene();
 
-      const gameSituation = {
-                    "ballSituation": ["","","","","","","","","","","","","","","","","",""],   /* 16個のcylinderにそれぞれボールが何個あるか */
-                    "winner": null,
-                    "turn": 0,
-                    "player": "A",
-                }
-
-
-
-
-
+      this.game = { // 初期化 
+        ball: ["","","","","","","","","","","","","","","","","",""],
+        winner: "",
+        turn:0,
+        player:"B",
+        };
 
 
       let cylinderList = [];
@@ -52,23 +67,21 @@
     const Json2Ballset = (json) => { /* json形式のデータをボールの配置に変換 */
         /* 一旦全部のボールを消す */
         for(let i = 0; i < 16; i++) {
-            for(let j = 0; j < json.ballSituation[i].length; j++) {
+            for(let j = 0; j < json.ball[i].length; j++) {
                 setoneBall(i,j,"");
             }
         }
 
         /* jsonのデータをもとにボールを配置 */
         for(let i = 0; i < 16; i++) {
-            if(json.ballSituation[i] === "") {
+            if(json.ball[i] === "") {
                 continue;
             }
-            for(let j = 0; j < json.ballSituation[i].length; j++) {
-                setoneBall(i,j,json.ballSituation[i][j]);
+            for(let j = 0; j < json.ball[i].length; j++) {
+                setoneBall(i,j,json.ball[i][j]);
             }
         }
     }
-
-
 
 
 
@@ -228,59 +241,63 @@
         }
     }
 
-
-    const ClickDetect = () => {
-        let selectedcylinder = null;
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        const onClick = function(event) {
-            const x = event.clientX;
-            const y = event.clientY;
-            const w = renderer.domElement.width;
-            const h = renderer.domElement.height;
-            mouse.x = (x / w) * 2 - 1;
-            mouse.y = -(y / h) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(scene.children);
-            if(intersects.length > 0) {
-                if(intersects[0].object.material.color.getHex() === 0xFFFFFF) {
-                    return;
-                }
-                if(intersects[0].object.material.color.getHex() === 0xFF0000) {
-                    for(let i = 0; i < 16; i++) {
-                        if(cylinderList[i] === selectedcylinder) {
-                            /* ここで通し番号を取得 */
-                            if(gameSituation.ballSituation[i].length === 4){ /* 既に4個ボールがある場合 */
-                                return;
-                            }
-                            gameSituation.ballSituation[i] += "W";
-                            Json2Ballset(gameSituation);
-                        }
-                    }
-                    intersects[0].object.material.color.set(0xDEB887);
-                    selectedcylinder = null;
-                    return;
-                }
-                if(intersects[0].object.material.color.getHex() === 0xDEB887) {
-                    if(selectedcylinder !== null) {
-                        selectedcylinder.material.color.set(0xDEB887);
-                    }
-                    intersects[0].object.material.color.set(0xFF0000);
-                    selectedcylinder = intersects[0].object;
-                    return;
-                }
-            }
+    let selectedcylinder = null;
+    const onClick = (event) => {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const x = event.clientX;
+    const y = event.clientY;
+    const w = renderer.domElement.width;
+    const h = renderer.domElement.height;
+    mouse.x = (x / w) * 2 - 1;
+    mouse.y = -(y / h) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
+    if (intersects.length > 0) {
+        if (intersects[0].object.material.color.getHex() === 0xFFFFFF) {
+            return;
         }
-        document.addEventListener('click', onClick);
-        document.addEventListener('touchstart', onClick);
-        document.addEventListener('keydown', function(event) {
-            if(event.key === 'Enter') {
-                Json2Ballset(gameSituation);
+        if (intersects[0].object.material.color.getHex() === 0xFF0000) {
+            for (let i = 0; i < 16; i++) {
+                if (cylinderList[i] === selectedcylinder) {
+                    /* ここで通し番号を取得 */
+                    if (this.game.ball[i].length === 4) {
+                        return;
+                    }
+                    this.game.ball[i] += this.game.player;
+                    Json2Ballset(this.game);
+                    let data = {
+                        "action": "put",
+                        "cylinder": i,
+                        "color": this.game.player,
+                    }
+                    this.ws.send(JSON.stringify(data));
+                }
             }
-        });
-    } 
-    ClickDetect();
-      animate();
+            intersects[0].object.material.color.set(0xDEB887);
+            selectedcylinder = null;
+            return;
+        }
+        if (intersects[0].object.material.color.getHex() === 0xDEB887) {
+            if (selectedcylinder !== null) { /* すでに選択されているcylinderがある場合 */
+                selectedcylinder.material.color.set(0xDEB887);
+            }
+            intersects[0].object.material.color.set(0xFF0000);
+            selectedcylinder = intersects[0].object;
+            return;
+        }
+    }
+};
+    document.addEventListener('click', onClick, false);
+    document.addEventListener('touchstart', onClick, false);
+    document.addEventListener("keypress", 
+    (event) => {
+        if(event.key === "a") {
+            this.ws.send(JSON.stringify({"action": "end"}));
+        }
+    }
+    )
+    animate();
     },
   },
 };
