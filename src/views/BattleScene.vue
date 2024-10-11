@@ -82,8 +82,11 @@
             }
         }
     }
-
-
+    this.ws.onmessage = (event) => {
+            this.game = JSON.parse(event.data);
+            console.log(this.game);
+            Json2Ballset(this.game);
+        };
 
       // シンプルなボックスを作成
     const generateGeometry = ()=> {
@@ -265,13 +268,13 @@
                         return;
                     }
                     this.game.ball[i] += this.game.player;
-                    Json2Ballset(this.game);
                     let data = {
                         "action": "put",
                         "cylinder": i,
                         "color": this.game.player,
                     }
                     this.ws.send(JSON.stringify(data));
+                    Json2Ballset(this.game);
                 }
             }
             intersects[0].object.material.color.set(0xDEB887);
