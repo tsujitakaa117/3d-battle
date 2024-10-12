@@ -19,6 +19,7 @@
         return {
             ws: null,
             game: null,
+            state: "start",
         };
     },
     mounted() {
@@ -49,7 +50,6 @@
         turn:0,
         player:"B",
         };
-
 
       let cylinderList = [];
       scene.add(new THREE.GridHelper(1000,1000));
@@ -84,7 +84,7 @@
     }
     this.ws.onmessage = (event) => {
             this.game = JSON.parse(event.data);
-            console.log(this.game);
+            console.log(this.game.winner);
             Json2Ballset(this.game);
         };
 
@@ -266,8 +266,7 @@
                     /* ここで通し番号を取得 */
                     if (this.game.ball[i].length === 4) {
                         return;
-                    }
-                    this.game.ball[i] += this.game.player;
+                    }   
                     let data = {
                         "action": "put",
                         "cylinder": i,
@@ -388,5 +387,20 @@
     border: none;
     cursor: pointer;
   }
+    /* #gamestart {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+    
+        transform: translate(-50%, -50%);
+        width: 50px;
+        height: 50px;
+        font-size: 40px;
+        border-radius: 50%;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        cursor: pointer;
+    }  */
   </style>
   
