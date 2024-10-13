@@ -30,7 +30,20 @@
     createWebSocket() {
         this.ws = new WebSocket('ws://localhost:8000/ws');
         this.ws.onopen = () => {
-            console.log('WebSocket connected');
+            /* vsローカルもしくはAIとの対戦をalertで選択 */
+            let vs = prompt("対戦相手を選択してください\n1:ローカル\n2:AI");
+            if(vs === "1") {
+                this.ws.send(JSON.stringify({"action": "start", "vs": "local"}));
+            }
+            else if(vs === "2") {
+                this.ws.send(JSON.stringify({"action": "start", "vs": "ai"}));
+            }
+            else {
+                alert("1か2を入力してください");
+                this.ws.close();
+                // 画面を更新
+                location.reload();
+            }
         };
         this.ws.onclose = () => {
             console.log('WebSocket closed');
@@ -84,6 +97,7 @@
     }
     this.ws.onmessage = (event) => {
             this.game = JSON.parse(event.data);
+            console.log(this.game.ball);
             Json2Ballset(this.game);
             if(this.game.winner !== null) {
                 alert(this.game.winner + "の勝ちです");
@@ -365,6 +379,7 @@
                         "cylinder": selectNum,
                         "color": this.game.player,
                     }
+                    this.game.ball[selectNum]+=this.game.player;
                     this.ws.send(JSON.stringify(data));
                     Json2Ballset(this.game);
         }
