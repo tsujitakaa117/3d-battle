@@ -84,14 +84,18 @@
     }
     this.ws.onmessage = (event) => {
             this.game = JSON.parse(event.data);
-            console.log(this.game.winner);
             Json2Ballset(this.game);
+            if(this.game.winner !== null) {
+                alert(this.game.winner + "の勝ちです");
+                this.ws.send(JSON.stringify({"action": "end"}));
+                return;
+            }
         };
 
       // シンプルなボックスを作成
     const generateGeometry = ()=> {
         const geometry1 = new THREE.BoxGeometry(10,3,10);
-        const material1 = new THREE.MeshBasicMaterial({ color: 0xFFFFFFF });
+        const material1 = new THREE.MeshBasicMaterial({ color: 0xDDDDDDD });
         const cube1 = new THREE.Mesh(geometry1, material1);
         scene.add(cube1);
         cube1.position.x = 0;
@@ -290,15 +294,82 @@
         }
     }
 };
+    /* 開発のためのキーボード操作 */
+        let selectNum = 0;
+        const cursor = new THREE.CylinderGeometry(0.5,0.3,1);
+        const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+        const cursorClinder = new THREE.Mesh(cursor, material);
+        cursorClinder.position.x = cylinderList[selectNum].position.x;
+        cursorClinder.position.y = cylinderList[selectNum].position.y+4;
+        cursorClinder.position.z = cylinderList[selectNum].position.z;
+        scene.add(cursorClinder);
+        selectedcylinder = cylinderList[selectNum];
     document.addEventListener('click', onClick, false);
     document.addEventListener('touchstart', onClick, false);
-    document.addEventListener("keypress", 
+    window.addEventListener("beforeunload", () => {
+        this.ws.send(JSON.stringify({"action": "end"}));
+    });
+    document.addEventListener("keydown", 
     (event) => {
         if(event.key === "a") {
+            // テスト用のリセット
             this.ws.send(JSON.stringify({"action": "end"}));
+
+        }
+        if(event.key === "ArrowRight") {
+            selectNum++;
+            if(selectNum > 15) {
+                selectNum = 0;
+            }
+            cursorClinder.position.x = cylinderList[selectNum].position.x;
+            cursorClinder.position.y = cylinderList[selectNum].position.y+4;
+            cursorClinder.position.z = cylinderList[selectNum].position.z;
+            selectedcylinder = cylinderList[selectNum];
+        }
+        if(event.key === "ArrowLeft") {
+            selectNum--;
+            if(selectNum < 0) {
+                selectNum = 15;
+            }
+            cursorClinder.position.x = cylinderList[selectNum].position.x;
+            cursorClinder.position.y = cylinderList[selectNum].position.y+4;
+            cursorClinder.position.z = cylinderList[selectNum].position.z;
+            selectedcylinder = cylinderList[selectNum];
+        }
+        if(event.key === "ArrowDown"){
+            selectNum += 4;
+            if(selectNum > 15) {
+                selectNum -= 16;
+            }
+            cursorClinder.position.x = cylinderList[selectNum].position.x;
+            cursorClinder.position.y = cylinderList[selectNum].position.y+4;
+            cursorClinder.position.z = cylinderList[selectNum].position.z;
+            selectedcylinder = cylinderList[selectNum];
+        }
+        if(event.key === "ArrowUp"){
+            selectNum -= 4;
+            if(selectNum < 0) {
+                selectNum += 16;
+            }
+            cursorClinder.position.x = cylinderList[selectNum].position.x;
+            cursorClinder.position.y = cylinderList[selectNum].position.y+4;
+            cursorClinder.position.z = cylinderList[selectNum].position.z;
+            selectedcylinder = cylinderList[selectNum];
+        }
+        if(event.key === "Enter"){
+            if (this.game.ball[selectNum].length === 4) {
+                        return;
+                    }   
+                    let data = {
+                        "action": "put",
+                        "cylinder": selectNum,
+                        "color": this.game.player,
+                    }
+                    this.ws.send(JSON.stringify(data));
+                    Json2Ballset(this.game);
         }
     }
-    )
+    );
     animate();
     },
   },
